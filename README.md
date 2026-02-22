@@ -1,4 +1,3 @@
-<div align="center">
 
 # 🏆 FootyPro
 ### Enterprise Football Management System
