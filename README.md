@@ -220,7 +220,7 @@ football-manager-pro/
 
 **1. Clone the repository:**
 ```bash
-git clone https://github.com/RAAPPO/football-manager-pro.git
+git clone https://github.com/raappo/football-manager-pro.git
 cd football-manager-pro
 ```
 
