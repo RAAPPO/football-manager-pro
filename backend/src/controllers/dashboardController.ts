@@ -49,3 +49,27 @@ export const getDashboardData = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Failed to load dashboard data' });
     }
 };
+
+// ==========================================
+// PHASE 2: ADVANCED ANALYTICS (VIEWS)
+// ==========================================
+
+export const getLeagueStandings = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM league_standings_view');
+        res.json(rows);
+    } catch (error) {
+        console.error("Error fetching standings:", error);
+        res.status(500).json({ error: "Failed to fetch league standings" });
+    }
+};
+
+export const getTopScorers = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM golden_boot_view LIMIT 10');
+        res.json(rows);
+    } catch (error) {
+        console.error("Error fetching top scorers:", error);
+        res.status(500).json({ error: "Failed to fetch top scorers" });
+    }
+};

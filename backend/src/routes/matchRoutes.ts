@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getMatches, getMatchById, createMatch, updateMatch, deleteMatch, getStadiums } from '../controllers/matchController';
+import { getMatches, getMatchById, createMatch, updateMatch, deleteMatch, getStadiums, addMatchAppearance, getMatchLineup } from '../controllers/matchController';
 
 const router = Router();
 
@@ -9,5 +9,7 @@ router.get('/:id', getMatchById);
 router.post('/', createMatch);
 router.put('/:id', updateMatch);
 router.delete('/:id', deleteMatch);
+router.get('/:id/lineup', getMatchLineup);
+router.post('/:id/lineup', addMatchAppearance);
 
 export default router;

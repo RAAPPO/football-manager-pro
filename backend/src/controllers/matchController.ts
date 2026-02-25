@@ -85,3 +85,41 @@ export const getStadiums = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Failed to fetch stadiums' });
     }
 };
+
+// ==========================================
+// PHASE 2: MATCH LINEUPS & STATS
+// ==========================================
+
+export const getMatchLineup = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const [rows] = await pool.query(`
+            SELECT ma.appearance_id, ma.minutes_played, ma.goals, ma.assists, 
+                   p.player_id, CONCAT(p.f_name, ' ', p.l_name) AS player_name, p.position
+            FROM match_appearances ma
+            JOIN player p ON ma.player_id = p.player_id
+            WHERE ma.match_id = ?
+        `, [req.params.id]);
+
+        res.json(rows);
+    } catch (error) {
+        console.error("Error fetching lineup:", error);
+        res.status(500).json({ error: "Failed to fetch lineup" });
+    }
+};
+
+export const addMatchAppearance = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const matchId = req.params.id;
+        const { player_id, minutes_played, goals, assists } = req.body;
+
+        await pool.query(
+            'INSERT INTO match_appearances (match_id, player_id, minutes_played, goals, assists) VALUES (?, ?, ?, ?, ?)',
+            [matchId, player_id, minutes_played || 0, goals || 0, assists || 0]
+        );
+
+        res.status(201).json({ message: "Player added to lineup" });
+    } catch (error: any) {
+        console.error("Error adding to lineup:", error);
+        res.status(500).json({ error: error.message || "Failed to add player to lineup." });
+    }
+};

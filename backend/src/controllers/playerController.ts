@@ -74,11 +74,15 @@ export const updatePlayer = async (req: Request, res: Response) => {
     }
 };
 
+
+// ==========================================
+// PHASE 2: ADVANCED SCOUTING & TRANSFERS
+// ==========================================
+
 export const searchPlayers = async (req: Request, res: Response): Promise<void> => {
     try {
         const { name, nameMatchType, position, club_id, minAge, maxAge, minSalary, minTrophies } = req.query;
 
-        // Base query with TWO Joins
         let sqlQuery = `
             SELECT 
                 p.player_id, 
@@ -96,55 +100,29 @@ export const searchPlayers = async (req: Request, res: Response): Promise<void> 
 
         const queryParams: any[] = [];
 
-        // 1. SMART TEXT MATCHING (Wildcards)
         if (name && typeof name === 'string') {
             if (nameMatchType === 'startsWith') {
                 sqlQuery += ` AND CONCAT(p.f_name, ' ', p.l_name) LIKE ?`;
-                queryParams.push(`${name}%`); // Wildcard at the end
+                queryParams.push(`${name}%`);
             } else if (nameMatchType === 'endsWith') {
                 sqlQuery += ` AND CONCAT(p.f_name, ' ', p.l_name) LIKE ?`;
-                queryParams.push(`%${name}`); // Wildcard at the beginning
+                queryParams.push(`%${name}`);
             } else if (nameMatchType === 'exact') {
                 sqlQuery += ` AND CONCAT(p.f_name, ' ', p.l_name) = ?`;
-                queryParams.push(name); // No wildcards, exact match
+                queryParams.push(name);
             } else {
-                // Default to 'contains'
                 sqlQuery += ` AND CONCAT(p.f_name, ' ', p.l_name) LIKE ?`;
-                queryParams.push(`%${name}%`); // Wildcards on both sides
+                queryParams.push(`%${name}%`);
             }
         }
 
-        // 2. EXACT DROPDOWN MATCHES
-        if (position) {
-            sqlQuery += ` AND p.position = ?`;
-            queryParams.push(position);
-        }
+        if (position) { sqlQuery += ` AND p.position = ?`; queryParams.push(position); }
+        if (club_id) { sqlQuery += ` AND p.club_id = ?`; queryParams.push(Number(club_id)); }
+        if (minAge) { sqlQuery += ` AND TIMESTAMPDIFF(YEAR, p.dob, CURDATE()) >= ?`; queryParams.push(Number(minAge)); }
+        if (maxAge) { sqlQuery += ` AND TIMESTAMPDIFF(YEAR, p.dob, CURDATE()) <= ?`; queryParams.push(Number(maxAge)); }
+        if (minSalary) { sqlQuery += ` AND con.salary >= ?`; queryParams.push(Number(minSalary)); }
+        if (minTrophies) { sqlQuery += ` AND c.total_trophies >= ?`; queryParams.push(Number(minTrophies)); }
 
-        // Use exact ID for the club dropdown instead of text search
-        if (club_id) {
-            sqlQuery += ` AND p.club_id = ?`;
-            queryParams.push(Number(club_id));
-        }
-
-        // 3. NUMERIC RANGES
-        if (minAge) {
-            sqlQuery += ` AND TIMESTAMPDIFF(YEAR, p.dob, CURDATE()) >= ?`;
-            queryParams.push(Number(minAge));
-        }
-        if (maxAge) {
-            sqlQuery += ` AND TIMESTAMPDIFF(YEAR, p.dob, CURDATE()) <= ?`;
-            queryParams.push(Number(maxAge));
-        }
-        if (minSalary) {
-            sqlQuery += ` AND con.salary >= ?`;
-            queryParams.push(Number(minSalary));
-        }
-        if (minTrophies) {
-            sqlQuery += ` AND c.total_trophies >= ?`;
-            queryParams.push(Number(minTrophies));
-        }
-
-        // Order the results nicely
         sqlQuery += ` ORDER BY salary DESC, age ASC`;
 
         const [rows] = await pool.query(sqlQuery, queryParams);
@@ -152,5 +130,35 @@ export const searchPlayers = async (req: Request, res: Response): Promise<void> 
     } catch (error) {
         console.error("Error searching players:", error);
         res.status(500).json({ error: "Failed to search players" });
+    }
+};
+
+export const transferPlayer = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const playerId = req.params.id;
+        const { new_club_id, new_salary, start_date, end_date } = req.body;
+
+        // Triggers your custom Stored Procedure
+        await pool.query('CALL transfer_player(?, ?, ?, ?, ?)', [playerId, new_club_id, new_salary, start_date, end_date]);
+        res.json({ message: "Blockbuster Transfer Completed Successfully!" });
+    } catch (error: any) {
+        console.error("Transfer error:", error);
+        res.status(500).json({ error: error.message || "Failed to execute transfer" });
+    }
+};
+
+export const getPlayerTransferHistory = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const [rows] = await pool.query(`
+            SELECT h.transfer_id, c1.club_name AS old_club, c2.club_name AS new_club, h.transfer_date
+            FROM player_transfer_history h
+            LEFT JOIN club c1 ON h.old_club_id = c1.club_id
+            LEFT JOIN club c2 ON h.new_club_id = c2.club_id
+            WHERE h.player_id = ? ORDER BY h.transfer_date DESC
+        `, [req.params.id]);
+        res.json(rows);
+    } catch (error) {
+        console.error("Error fetching transfer history:", error);
+        res.status(500).json({ error: "Failed to fetch transfer history" });
     }
 };

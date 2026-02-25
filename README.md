@@ -224,9 +224,10 @@ git clone https://github.com/raappo/football-manager-pro.git
 cd football-manager-pro
 ```
 
-**2. Launch the full stack with a single command:**
+**2. Launch the full stack with commands in order:**
 ```bash
 docker-compose up -d --build
+docker-compose up
 ```
 
 This command will:

@@ -82,3 +82,30 @@ CREATE TABLE player_log (
     player_id INT NOT NULL,
     deleted_at DATETIME NOT NULL
 );
+
+-- =================================================================
+-- PHASE 2: ADVANCED SCHEMA ADDITIONS
+-- =================================================================
+
+-- 1. Many-to-Many Junction Table for Match Lineups & Stats
+CREATE TABLE IF NOT EXISTS match_appearances (
+    appearance_id INT PRIMARY KEY AUTO_INCREMENT,
+    match_id INT NOT NULL,
+    player_id INT NOT NULL,
+    minutes_played INT DEFAULT 0,
+    goals INT DEFAULT 0,
+    assists INT DEFAULT 0,
+    FOREIGN KEY (match_id) REFERENCES matches(match_id) ON DELETE CASCADE,
+    FOREIGN KEY (player_id) REFERENCES player(player_id) ON DELETE CASCADE,
+    UNIQUE KEY unique_appearance (match_id, player_id)
+);
+
+-- 2. Audit Table for Automated Transfer History
+CREATE TABLE IF NOT EXISTS player_transfer_history (
+    transfer_id INT PRIMARY KEY AUTO_INCREMENT,
+    player_id INT NOT NULL,
+    old_club_id INT,
+    new_club_id INT,
+    transfer_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (player_id) REFERENCES player(player_id) ON DELETE CASCADE
+);
